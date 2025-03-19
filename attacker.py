@@ -1,26 +1,49 @@
 import socket
 
-# Set up the listener
-host = "0.0.0.0"  # Listen on all interfaces
-port = 4444  # Choose any open port
+def start_server(host: str = "0.0.0.0", port: int = 4444) -> None:
+    """
+    Start a server to listen for incoming connections and handle commands.
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.bind((host, port))
+            server.listen(1)
+            print(f"[*] Listening on {host}:{port}")
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client, addr = server.accept()
+            print(f"[+] Connection from {addr}")
 
-server.bind((host, port))
-server.listen(1)
+            with client:
+                while True:
+                    try:
+                        command = input("Shell> ").strip()
 
-print(f"[*] Listening on {host}:{port}")
+                        if not command:
+                            print("[!] Please enter a valid command.")
+                            continue
 
-client, addr = server.accept()
-print(f"[+] Connection from {addr}")
+                        if command.lower() == "exit":
+                            print("[*] Closing connection.")
+                            break
 
-while True:
-    command = input("Shell> ")  # Enter a command to send
-    if command.lower() == "exit":
-        break
-    client.send(command.encode())
-    response = client.recv(1024).decode()
-    print(response)
+                        client.send(command.encode())
 
-client.close()
-server.close()
+                        response = client.recv(1024).decode()
+                        if not response:
+                            print("[-] Client disconnected.")
+                            break
+
+                        print(response)
+
+                    except KeyboardInterrupt:
+                        print("\n[*] Server shutdown by user.")
+                        break
+                    except Exception as e:
+                        print(f"[-] Error: {e}")
+                        break
+
+    except Exception as e:
+        print(f"[-] Server error: {e}")
+
+if __name__ == "__main__":
+    start_server()
